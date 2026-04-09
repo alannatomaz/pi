@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_REGISTROS 500000
-
 typedef struct
 {
     int id;
@@ -11,9 +9,6 @@ typedef struct
     char categoria[31];
     float valor;
 } Produto;
-
-Produto vetor[MAX_REGISTROS];
-int total_registros = 0;
 
 int carregar_csv(const char *caminho)
 {
