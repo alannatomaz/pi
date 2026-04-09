@@ -10,7 +10,7 @@ typedef struct
     float valor;
 } Produto;
 
-int carregar_csv(const char *caminho)
+int carregar_csv(const char *caminho, Produto **vetor)
 {
     FILE *fp = fopen(caminho, "r");
     if (fp == NULL)
@@ -24,25 +24,42 @@ int carregar_csv(const char *caminho)
     /* Pula o cabecalho */
     fgets(linha, sizeof(linha), fp);
 
+    int total = 0;
+    int capacidade = 100;
+
+    *vetor = (Produto *)malloc(capacidade * sizeof(Produto));
+    if (*vetor == NULL)
+    {
+        printf("Erro: falha ao alocar memoria.\n");
+        fclose(fp);
+        return -1;
+    }
+
     while (fgets(linha, sizeof(linha), fp) != NULL)
     {
-        if (total_registros >= MAX_REGISTROS)
+        if (total == capacidade)
         {
-            printf("Aviso: limite de registros atingido.\n");
-            break;
+            capacidade = capacidade * 2;
+            *vetor = (Produto *)realloc(*vetor, capacidade * sizeof(Produto));
+            if (*vetor == NULL)
+            {
+                printf("Erro: falha ao realocar memoria.\n");
+                fclose(fp);
+                return -1;
+            }
         }
 
         Produto p;
         if (sscanf(linha, "%d,%50[^,],%30[^,],%f",
                    &p.id, p.nome, p.categoria, &p.valor) == 4)
         {
-            vetor[total_registros] = p;
-            total_registros++;
+            (*vetor)[total] = p;
+            total++;
         }
     }
 
     fclose(fp);
-    return 1;
+    return total;
 }
 
 int main(int argc, char *argv[])
