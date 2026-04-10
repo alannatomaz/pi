@@ -102,14 +102,10 @@ int main(int argc, char *argv[])
     }
     printf("Registros carregados: %d\n\n", total);
 
-    int id_inicio = vetor[total / 8].id;
-    int id_meio = vetor[total / 2].id;
-    int id_final = vetor[total - total / 8].id;
-    int id_inexistente = -999;
+    srand(42); /* semente fixa para resultados reproduziveis */
 
-    int ids[4] = {id_inicio, id_meio, id_final, id_inexistente};
-
-    printf("%-8s  %-20s  %-22s\n", "Rodada", "Tempo Total (s)", "Tempo Medio/Busca (microssegundos)");
+    printf("%-8s  %-20s  %-22s\n", "Rodada", "Tempo Total (s)", "Tempo Medio/Busca (us)");
+    printf("%-8s  %-20s  %-22s\n", "------", "---------------", "---------------------");
 
     for (r = 0; r < N_RODADAS; r++)
     {
@@ -117,7 +113,31 @@ int main(int argc, char *argv[])
 
         for (i = 0; i < N_BUSCAS; i++)
         {
-            busca_sequencial(vetor, total, ids[i % 4]);
+            int id;
+            int regiao = i % 4;
+
+            if (regiao == 0)
+            {
+                /* Inicio: sorteia entre as primeiras 1/4 posicoes */
+                id = vetor[rand() % (total / 4)].id;
+            }
+            else if (regiao == 1)
+            {
+                /* Meio: sorteia entre 1/4 e 3/4 */
+                id = vetor[total / 4 + rand() % (total / 2)].id;
+            }
+            else if (regiao == 2)
+            {
+                /* Final: sorteia entre as ultimas 1/4 posicoes */
+                id = vetor[total * 3 / 4 + rand() % (total / 4)].id;
+            }
+            else
+            {
+                /* Inexistente */
+                id = -999;
+            }
+
+            busca_sequencial(vetor, total, id);
         }
 
         fim = clock();
