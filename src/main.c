@@ -3,60 +3,55 @@
 #include <string.h>
 #include <time.h>
 
-#define N_BUSCAS 1000
+#define N_BUSCAS_POR_BLOCO 250 // 250 * 4 categorias = 1000 buscas totais
 #define N_RODADAS 3
 
-typedef struct
-{
+typedef struct {
     int id;
     char nome[51];
     char categoria[31];
     float valor;
 } Produto;
 
-int carregar_csv(const char *caminho, Produto **vetor)
-{
+// --- FUNÇÃO DE BUSCA SEQUENCIAL ---
+int busca_sequencial(Produto *vetor, int total, int id_buscado) {
+    for (int i = 0; i < total; i++) {
+        if (vetor[i].id == id_buscado) {
+            return i; // Retorna o índice onde encontrou
+        }
+    }
+    return -1; // Não encontrado
+}
+
+// --- FUNÇÃO PARA CARREGAR O CSV (Alocação Dinâmica) ---
+int carregar_csv(const char *caminho, Produto **vetor) {
     FILE *fp = fopen(caminho, "r");
-    if (fp == NULL)
-    {
+    if (fp == NULL) {
         printf("Erro: nao foi possivel abrir o arquivo '%s'.\n", caminho);
         return 0;
     }
 
     char linha[256];
-
-    /* Pula o cabecalho */
-    fgets(linha, sizeof(linha), fp);
+    fgets(linha, sizeof(linha), fp); // Pula o cabeçalho
 
     int total = 0;
     int capacidade = 100;
-
     *vetor = (Produto *)malloc(capacidade * sizeof(Produto));
-    if (*vetor == NULL)
-    {
-        printf("Erro: falha ao alocar memoria.\n");
+
+    if (*vetor == NULL) {
         fclose(fp);
         return -1;
     }
 
-    while (fgets(linha, sizeof(linha), fp) != NULL)
-    {
-        if (total == capacidade)
-        {
-            capacidade = capacidade * 2;
+    while (fgets(linha, sizeof(linha), fp) != NULL) {
+        if (total == capacidade) {
+            capacidade *= 2;
             *vetor = (Produto *)realloc(*vetor, capacidade * sizeof(Produto));
-            if (*vetor == NULL)
-            {
-                printf("Erro: falha ao realocar memoria.\n");
-                fclose(fp);
-                return -1;
-            }
         }
 
         Produto p;
-        if (sscanf(linha, "%d,%50[^,],%30[^,],%f",
-                   &p.id, p.nome, p.categoria, &p.valor) == 4)
-        {
+        // Lógica de leitura separada por vírgulas
+        if (sscanf(linha, "%d,%50[^,],%30[^,],%f", &p.id, p.nome, p.categoria, &p.valor) == 4) {
             (*vetor)[total] = p;
             total++;
         }
@@ -66,101 +61,97 @@ int carregar_csv(const char *caminho, Produto **vetor)
     return total;
 }
 
-int busca_sequencial(Produto *vetor, int total, int id_buscado)
-{
-    int i;
-    for (i = 0; i < total; i++)
-    {
-        if (vetor[i].id == id_buscado)
-        {
-            return i;
+// --- FUNÇÃO PARA PREPARAR OU CARREGAR AMOSTRAS FIXAS ---
+void preparar_amostras(Produto *vetor, int total, int *ids_teste) {
+    FILE *f = fopen("amostras.txt", "r");
+    
+    if (f) {
+        // Se o arquivo já existe, carrega os IDs dele
+        for (int i = 0; i < 1000; i++) {
+            fscanf(f, "%d", &ids_teste[i]);
         }
+        fclose(f);
+        printf("Amostras carregadas de 'amostras.txt'.\n");
+    } else {
+        // Se não existe, sorteia e salva para as próximas execuções
+        f = fopen("amostras.txt", "w");
+        srand(time(NULL)); 
+        
+        for (int i = 0; i < 1000; i++) {
+            if (i < 250)      ids_teste[i] = vetor[rand() % (total / 4)].id;              // Inicio
+            else if (i < 500) ids_teste[i] = vetor[total / 4 + rand() % (total / 2)].id;  // Meio
+            else if (i < 750) ids_teste[i] = vetor[total * 3 / 4 + rand() % (total / 4)].id; // Final
+            else              ids_teste[i] = -999;                                        // Inexistente
+
+            fprintf(f, "%d\n", ids_teste[i]);
+        }
+        fclose(f);
+        printf("Novas amostras geradas e salvas em 'amostras.txt'.\n");
     }
-    return -1;
 }
 
-int main(int argc, char *argv[])
-{
-    Produto *vetor = NULL;
-    int total;
-    int r, i;
-    double tempo_medio[N_RODADAS];
-    double soma_medias = 0.0;
-    clock_t inicio, fim;
+// --- FUNÇÃO DE TESTE POR CATEGORIA ---
+void executar_teste_bloco(Produto *vetor, int total, int *ids, int inicio_indice, const char *nome_bloco) {
+    double soma_tempos = 0;
+    printf("\n>>> Testando Bloco: %s\n", nome_bloco);
+    printf("------------------------------------------\n");
 
-    if (argc < 2)
-    {
-        printf("Uso: %s <arquivo.csv>\n", argv[0]);
-        return 1;
-    }
-
-    printf("Carregando dataset...\n");
-    total = carregar_csv(argv[1], &vetor);
-    if (total < 0)
-    {
-        return 1;
-    }
-    printf("Registros carregados: %d\n\n", total);
-
-    srand(42); /* semente fixa para resultados reproduziveis */
-
-    printf("%-8s  %-20s  %-22s\n", "Rodada", "Tempo Total (s)", "Tempo Medio/Busca (us)");
-    printf("%-8s  %-20s  %-22s\n", "------", "---------------", "---------------------");
-
-    for (r = 0; r < N_RODADAS; r++)
-    {
-        inicio = clock();
-
-        for (i = 0; i < N_BUSCAS; i++)
-        {
-            int id;
-            int regiao = i % 4;
-
-            if (regiao == 0)
-            {
-                /* Inicio: sorteia entre as primeiras 1/4 posicoes */
-                id = vetor[rand() % (total / 4)].id;
-            }
-            else if (regiao == 1)
-            {
-                /* Meio: sorteia entre 1/4 e 3/4 */
-                id = vetor[total / 4 + rand() % (total / 2)].id;
-            }
-            else if (regiao == 2)
-            {
-                /* Final: sorteia entre as ultimas 1/4 posicoes */
-                id = vetor[total * 3 / 4 + rand() % (total / 4)].id;
-            }
-            else
-            {
-                /* Inexistente */
-                id = -999;
-            }
-
-            busca_sequencial(vetor, total, id);
+    for (int r = 0; r < N_RODADAS; r++) {
+        clock_t t_inicio = clock();
+        
+        for (int i = inicio_indice; i < inicio_indice + N_BUSCAS_POR_BLOCO; i++) {
+            busca_sequencial(vetor, total, ids[i]);
         }
+        
+        clock_t t_fim = clock();
+        double tempo_total_rodada = (double)(t_fim - t_inicio) / CLOCKS_PER_SEC;
+        soma_tempos += tempo_total_rodada;
 
-        fim = clock();
-
-        double tempo_total = (double)(fim - inicio) / CLOCKS_PER_SEC;
-        tempo_medio[r] = tempo_total / N_BUSCAS;
-        soma_medias += tempo_medio[r];
-
-        printf("%-8d  %-20.6f  %-22.4f\n",
-               r + 1,
-               tempo_total,
-               tempo_medio[r] * 1e6);
+        printf("Rodada %d: Tempo Total = %.6f s | Media = %.8f s\n", 
+               r + 1, tempo_total_rodada, tempo_total_rodada / N_BUSCAS_POR_BLOCO);
     }
 
-    double media_final = soma_medias / N_RODADAS;
+    double media_final_bloco = (soma_tempos / N_RODADAS) / N_BUSCAS_POR_BLOCO;
+    printf("MEDIA FINAL DO BLOCO %s: %.8f segundos por busca\n", nome_bloco, media_final_bloco);
+}
 
-    printf("\n\n\n");
-    printf("  Resumo Final\n\n");
-    printf("  Registros no vetor  : %d\n", total);
-    printf("  Buscas por rodada   : %d\n", N_BUSCAS);
-    printf("  Rodadas executadas  : %d\n", N_RODADAS);
-    printf("  Tempo medio final   : %.4f microssegundos/busca\n", media_final * 1e6);
+// --- FUNÇÃO PRINCIPAL (Sempre ao final para evitar erros de declaração) ---
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Uso: %s <caminho_do_arquivo.csv>\n", argv[0]);
+        return 1;
+    }
 
+    Produto *vetor = NULL;
+    int total = carregar_csv(argv[1], &vetor);
+
+    if (total <= 0) {
+        printf("Erro ao carregar dados.\n");
+        return 1;
+    }
+
+    printf("Dataset carregado com sucesso! Total de registros: %d\n", total);
+
+    // Alocação dinâmica para o vetor de IDs de teste (1000 inteiros)
+    int *ids_teste = (int *)malloc(1000 * sizeof(int));
+    if (ids_teste == NULL) {
+        free(vetor);
+        return 1;
+    }
+
+    // Prepara os IDs que serão usados em todos os testes
+    preparar_amostras(vetor, total, ids_teste);
+
+    // Executa o protocolo experimental por categoria
+    executar_teste_bloco(vetor, total, ids_teste, 0,   "INICIO");
+    executar_teste_bloco(vetor, total, ids_teste, 250, "MEIO");
+    executar_teste_bloco(vetor, total, ids_teste, 500, "FIM");
+    executar_teste_bloco(vetor, total, ids_teste, 750, "INEXISTENTE");
+
+    // Liberação de memória
+    free(ids_teste);
     free(vetor);
+
+    printf("\nTestes concluidos com sucesso.\n");
     return 0;
 }
