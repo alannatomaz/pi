@@ -2,29 +2,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "produto.h"
+#include "hash.h"
 
 #define N_BUSCAS_POR_BLOCO 250
 #define N_RODADAS 3
 
-typedef struct {
-    int id;
-    char nome[51];
-    char categoria[31];
-    float valor;
-} Produto;
-
-int busca_sequencial(Produto *vetor, int total, int id_buscado) {
-    for (int i = 0; i < total; i++) {
-        if (vetor[i].id == id_buscado) {
+int busca_sequencial(Produto *vetor, int total, int id_buscado)
+{
+    for (int i = 0; i < total; i++)
+    {
+        if (vetor[i].id == id_buscado)
+        {
             return i;
         }
     }
     return -1;
 }
 
-int carregar_csv(const char *caminho, Produto **vetor) {
+int carregar_csv(const char *caminho, Produto **vetor)
+{
     FILE *fp = fopen(caminho, "r");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Erro: nao foi possivel abrir o arquivo '%s'.\n", caminho);
         return 0;
     }
@@ -36,19 +36,23 @@ int carregar_csv(const char *caminho, Produto **vetor) {
     int capacidade = 100;
     *vetor = (Produto *)malloc(capacidade * sizeof(Produto));
 
-    if (*vetor == NULL) {
+    if (*vetor == NULL)
+    {
         fclose(fp);
         return -1;
     }
 
-    while (fgets(linha, sizeof(linha), fp) != NULL) {
-        if (total == capacidade) {
+    while (fgets(linha, sizeof(linha), fp) != NULL)
+    {
+        if (total == capacidade)
+        {
             capacidade *= 2;
             *vetor = (Produto *)realloc(*vetor, capacidade * sizeof(Produto));
         }
 
         Produto p;
-        if (sscanf(linha, "%d,%50[^,],%30[^,],%f", &p.id, p.nome, p.categoria, &p.valor) == 4) {
+        if (sscanf(linha, "%d,%50[^,],%30[^,],%f", &p.id, p.nome, p.categoria, &p.valor) == 4)
+        {
             (*vetor)[total] = p;
             total++;
         }
@@ -58,24 +62,34 @@ int carregar_csv(const char *caminho, Produto **vetor) {
     return total;
 }
 
-void preparar_amostras(Produto *vetor, int total, int *ids_teste) {
+void preparar_amostras(Produto *vetor, int total, int *ids_teste)
+{
     FILE *f = fopen("amostras.txt", "r");
 
-    if (f) {
-        for (int i = 0; i < 1000; i++) {
+    if (f)
+    {
+        for (int i = 0; i < 1000; i++)
+        {
             fscanf(f, "%d", &ids_teste[i]);
         }
         fclose(f);
         printf("Amostras carregadas de 'amostras.txt'.\n");
-    } else {
+    }
+    else
+    {
         f = fopen("amostras.txt", "w");
         srand(time(NULL));
 
-        for (int i = 0; i < 1000; i++) {
-            if (i < 250)      ids_teste[i] = vetor[rand() % (total / 4)].id;
-            else if (i < 500) ids_teste[i] = vetor[total / 4 + rand() % (total / 2)].id;
-            else if (i < 750) ids_teste[i] = vetor[total * 3 / 4 + rand() % (total / 4)].id;
-            else              ids_teste[i] = -999;
+        for (int i = 0; i < 1000; i++)
+        {
+            if (i < 250)
+                ids_teste[i] = vetor[rand() % (total / 4)].id;
+            else if (i < 500)
+                ids_teste[i] = vetor[total / 4 + rand() % (total / 2)].id;
+            else if (i < 750)
+                ids_teste[i] = vetor[total * 3 / 4 + rand() % (total / 4)].id;
+            else
+                ids_teste[i] = -999;
 
             fprintf(f, "%d\n", ids_teste[i]);
         }
@@ -84,8 +98,10 @@ void preparar_amostras(Produto *vetor, int total, int *ids_teste) {
     }
 }
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
+int main(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
         printf("Uso: %s <caminho_do_arquivo.csv>\n", argv[0]);
         return 1;
     }
@@ -93,15 +109,34 @@ int main(int argc, char *argv[]) {
     Produto *vetor = NULL;
     int total = carregar_csv(argv[1], &vetor);
 
-    if (total <= 0) {
+    if (total <= 0)
+    {
         printf("Erro ao carregar dados.\n");
         return 1;
     }
 
     printf("Dataset carregado com sucesso! Total de registros: %d\n\n", total);
 
+    /* ---- TESTE TEMPORARIO DA TABELA HASH ---- */
+    int m = total;
+    NoHash **tabela = criar_tabela_hash(m);
+    long colisoes = 0;
+
+    for (int i = 0; i < total; i++)
+    {
+        hash_inserir(tabela, m, vetor[i], &colisoes);
+    }
+
+    printf("Tabela hash carregada: %d registros, %ld colisoes\n", total, colisoes);
+    printf("Teste de busca id=1: %d\n", hash_buscar(tabela, m, 1));
+    printf("Teste de busca id=999999 (inexistente): %d\n\n", hash_buscar(tabela, m, 999999));
+
+    hash_liberar(tabela, m);
+    /* ---- FIM DO TESTE TEMPORARIO ---- */
+
     int *ids_teste = (int *)malloc(1000 * sizeof(int));
-    if (ids_teste == NULL) {
+    if (ids_teste == NULL)
+    {
         free(vetor);
         return 1;
     }
@@ -115,7 +150,8 @@ int main(int argc, char *argv[]) {
     double media_inexistente[N_RODADAS];
 
     int r, i;
-    for (r = 0; r < N_RODADAS; r++) {
+    for (r = 0; r < N_RODADAS; r++)
+    {
         printf("\n==========================================\n");
         printf("  Rodada %d\n", r + 1);
         printf("==========================================\n");
