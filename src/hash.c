@@ -4,7 +4,12 @@
 
 int hash_func(int id, int m)
 {
-    return ((id / 1000) + (id % 1000)) % m;
+    int h = ((id / 1000) + (id % 1000)) % m;
+    if (h < 0)
+    {
+        h += m;
+    }
+    return h;
 }
 
 NoHash **criar_tabela_hash(int m)
