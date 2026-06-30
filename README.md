@@ -56,15 +56,15 @@ gcc -o busca src/main.c src/hash.c
 | ----------------------------- | ------------- |
 | Total de registros carregados | 400.009       |
 | Total de colisões             | 398.611       |
-| Tempo total das buscas (Hash) | _A PREENCHER_ |
-| Tempo médio por busca (Hash)  | _A PREENCHER_ |
+| Tempo total das buscas (Hash) | 0,091000 s    |
+| Tempo médio por busca (Hash)  | 0,00003033 s  |
 
 ### Comparação Busca Sequencial x Tabela Hash
 
 | Métrica                   | Busca Sequencial | Tabela Hash   |
 | ------------------------- | ---------------- | ------------- |
-| Tempo médio               | 0.002117 s       | _A PREENCHER_ |
-| Complexidade teórica      | O(n)             | _A PREENCHER_ |
-| Observações experimentais | _A PREENCHER_    | _A PREENCHER_ |
+| Tempo médio               | 0.002117 s       | 0,00003033 s  |
+| Complexidade teórica      | O(n)             | O(1) amortizado / O(n) pior caso |
+| Observações experimentais | _A PREENCHER_    | ~80,91x mais rápida, apesar de 99,6% de colisões |
 
 > A análise interpretativa completa (desempenho teórico x prático, eficiência da função hash, vantagens e limitações) está detalhada no artigo científico do grupo.
