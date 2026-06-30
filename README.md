@@ -10,7 +10,7 @@ Trabalho da disciplina Projeto Integrador.
 - `data/` — datasets utilizados nos testes
 - `amostras.txt` — ids de teste gerados automaticamente (início, meio, final, inexistentes)
 - `docs/` — Relatórios (PDF) FASE 1 e FASE 2
-- 
+  
 ## Fase I — Busca Sequencial
 
 Implementação de busca sequencial em vetor, com medição de tempo via `clock()`.
