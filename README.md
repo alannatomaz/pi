@@ -9,6 +9,7 @@ Trabalho da disciplina Projeto Integrador.
 - `src/hash.h` / `src/hash.c` — implementação da Tabela Hash com tratamento de colisões (encadeamento)
 - `data/` — datasets utilizados nos testes
 - `amostras.txt` — ids de teste gerados automaticamente (início, meio, final, inexistentes)
+- `docs/` — Relatório FASE 1- Projeto Integrador (Alanna Tomaz e Sofia Dios).docx (1).pdf
 
 ## Fase I — Busca Sequencial
 
