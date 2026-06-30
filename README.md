@@ -9,8 +9,8 @@ Trabalho da disciplina Projeto Integrador.
 - `src/hash.h` / `src/hash.c` — implementação da Tabela Hash com tratamento de colisões (encadeamento)
 - `data/` — datasets utilizados nos testes
 - `amostras.txt` — ids de teste gerados automaticamente (início, meio, final, inexistentes)
-- `docs/` — Relatório FASE 1- Projeto Integrador (Alanna Tomaz e Sofia Dios).docx (1).pdf
-
+- `docs/` — Relatórios (PDF) FASE 1 e FASE 2
+- 
 ## Fase I — Busca Sequencial
 
 Implementação de busca sequencial em vetor, com medição de tempo via `clock()`.
